@@ -1,73 +1,55 @@
-(function (global) {
-    // Define the global interface
-    global.WeglotCustom = {
-        initialize: function ({ api_key, languages }) {
-            if (!api_key || !languages || !Array.isArray(languages)) {
-                console.error('WeglotCustom: Missing or invalid configuration.');
+(function () {
+    const WeglotCustom = {
+        initialize: function (config) {
+            if (typeof Weglot === 'undefined') {
+                console.error('Weglot library is not loaded.');
                 return;
             }
 
-            // Load Weglot
-            if (!window.Weglot) {
-                console.error('WeglotCustom: Weglot library not loaded.');
-                return;
-            }
+            Weglot.initialize(config);
 
-            // Initialize Weglot
-            Weglot.initialize({
-                api_key: api_key,
-                languages: languages,
-            });
-
-            // Set up event listeners and UI updates
             document.addEventListener('DOMContentLoaded', function () {
-                function updateLanguageSelector(currentLang) {
-                    // Your existing update logic
-                    // Reset UI elements and update based on the currentLang
-                    document.querySelectorAll('[language-item]').forEach(item => {
-                        // Reset styles
-                        item.style.backgroundColor = '';
-                        const label = item.querySelector('[language-item-label]');
-                        if (label) label.style.color = '';
-                    });
-
-                    // Highlight the active language
-                    document.querySelectorAll(`[language-item="${currentLang}"]`).forEach(activeLangItem => {
-                        activeLangItem.style.backgroundColor = 'var(--grey-99)';
-                        const label = activeLangItem.querySelector('[language-item-label]');
-                        if (label) label.style.color = 'var(--grey-20-text)';
-                    });
-
-                    // Update toggle elements
-                    document.querySelectorAll('.language-toggle .language-flag').forEach(flag => {
-                        flag.classList.add('lan-fla--hide');
-                    });
-                    document.querySelectorAll(`.language-toggle [language-flag="${currentLang}"]`).forEach(activeFlag => {
-                        activeFlag.classList.remove('lan-fla--hide');
-                    });
-
-                    document.querySelectorAll('[language-toggle-label]').forEach(toggleLabel => {
-                        const activeLangLabel = document.querySelector(`[language-item-label="${currentLang}"]`);
-                        if (activeLangLabel) toggleLabel.textContent = activeLangLabel.textContent;
-                    });
+                // Restore saved language
+                const savedLang = localStorage.getItem('selectedLanguage');
+                if (savedLang) {
+                    Weglot.switchTo(savedLang);
                 }
 
-                // On Weglot initialization
-                Weglot.on('initialized', () => {
+                // Handle language updates on Weglot initialization
+                Weglot.on('initialized', function () {
                     const currentLang = Weglot.getCurrentLang();
                     updateLanguageSelector(currentLang);
                 });
 
-                // Add click event listeners
+                // Update the language selector
+                function updateLanguageSelector(currentLang) {
+                    // Update language flag
+                    document.querySelectorAll('.language-toggle .language-flag').forEach(flag => {
+                        flag.classList.add('lan-fla--hide');
+                    });
+                    document.querySelector(`.language-toggle [language-flag="${currentLang}"]`)?.classList.remove('lan-fla--hide');
+
+                    // Update language toggle label
+                    document.querySelectorAll('[language-toggle-label]').forEach(toggleLabel => {
+                        const activeLangLabel = document.querySelector(`[language-item-label="${currentLang}"]`);
+                        if (activeLangLabel) {
+                            toggleLabel.textContent = activeLangLabel.textContent;
+                        }
+                    });
+                }
+
+                // Save language on user selection
                 document.querySelectorAll('[language-item]').forEach(item => {
-                    item.addEventListener('click', function (e) {
-                        e.preventDefault();
+                    item.addEventListener('click', function () {
                         const selectedLang = this.getAttribute('language-item');
                         Weglot.switchTo(selectedLang);
-                        updateLanguageSelector(selectedLang);
+                        localStorage.setItem('selectedLanguage', selectedLang);
                     });
                 });
             });
         },
     };
-})(window);
+
+    // Expose globally
+    window.WeglotCustom = WeglotCustom;
+})();
